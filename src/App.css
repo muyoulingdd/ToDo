@@ -34,7 +34,7 @@
 
 .home-hero {
   padding-top: 20px;
-  padding-bottom: 22px;
+  padding-bottom: 18px;
 }
 
 .eyebrow {
@@ -125,6 +125,10 @@ h3 {
   padding: 40px 6px 28px;
   color: var(--muted);
   text-align: center;
+}
+
+.detail-empty-state {
+  padding: 22px 6px 6px;
 }
 
 .empty-state span {
@@ -301,6 +305,10 @@ h3 {
   animation: rise-in 420ms ease-out;
 }
 
+.detail-card {
+  min-height: 68svh;
+}
+
 .composer-form {
   margin-top: 26px;
 }
@@ -354,16 +362,119 @@ h3 {
 
 .progress-block {
   margin-top: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .details-input {
-  min-height: 180px;
+  min-height: 56px;
   margin-top: 12px;
   padding: 14px 16px;
   border-radius: 20px;
-  resize: vertical;
   background: rgba(255, 255, 255, 0.58);
   border: 1px solid rgba(29, 40, 31, 0.08);
+}
+
+.progress-input {
+  min-height: 220px;
+  resize: vertical;
+}
+
+.progress-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-top: 22px;
+}
+
+.progress-page-title {
+  margin-top: 6px;
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.progress-editor-card {
+  min-height: calc(100svh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding-right: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  max-height: 260px;
+}
+
+.progress-entry {
+  padding: 10px 16px;
+  min-height: 68px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(29, 40, 31, 0.08);
+}
+
+.progress-entry p {
+  color: var(--ink);
+  line-height: 1.5;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.progress-entry-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.progress-entry-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inline-delete-button {
+  position: static;
+  flex: 0 0 auto;
+}
+
+.progress-edit-button {
+  width: 100%;
+  padding: 16px 20px;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.progress-edit-button-floating {
+  margin-top: auto;
+}
+
+.progress-submit-button {
+  margin-top: auto;
+}
+
+.progress-entry-detail-card {
+  min-height: 68svh;
+}
+
+.progress-entry-detail {
+  min-height: 220px;
+  margin-top: 12px;
+}
+
+.progress-entry-detail p {
+  display: block;
+  overflow: visible;
 }
 
 .missing-card {

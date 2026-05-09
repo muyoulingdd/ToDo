@@ -19,6 +19,8 @@ type TaskContextValue = {
   tasks: TodoTask[]
   addTask: (draft: TaskDraft) => TodoTask
   updateTask: (taskId: string, patch: TaskPatch) => void
+  addProgressEntry: (taskId: string, content: string) => void
+  deleteProgressEntry: (taskId: string, entryId: string) => void
   toggleTask: (taskId: string) => void
   deleteTask: (taskId: string) => void
   getTask: (taskId: string) => TodoTask | undefined
@@ -52,6 +54,7 @@ export function TaskProvider({ children }: PropsWithChildren) {
           id: crypto.randomUUID(),
           title: title.trim(),
           progressNote: '',
+          progressEntries: [],
           completed: false,
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -77,6 +80,56 @@ export function TaskProvider({ children }: PropsWithChildren) {
                 ...task,
                 ...patch,
                 completed,
+                updatedAt: new Date().toISOString(),
+              }
+            }),
+          ),
+        )
+      },
+      addProgressEntry: (taskId, content) => {
+        const trimmed = content.trim()
+        if (!trimmed) {
+          return
+        }
+
+        setTasks((current) =>
+          sortTasks(
+            current.map((task) => {
+              if (task.id !== taskId) {
+                return task
+              }
+
+              const timestamp = new Date().toISOString()
+              return {
+                ...task,
+                progressNote: trimmed,
+                progressEntries: [
+                  ...task.progressEntries,
+                  {
+                    id: crypto.randomUUID(),
+                    content: trimmed,
+                    createdAt: timestamp,
+                  },
+                ],
+                updatedAt: timestamp,
+              }
+            }),
+          ),
+        )
+      },
+      deleteProgressEntry: (taskId, entryId) => {
+        setTasks((current) =>
+          sortTasks(
+            current.map((task) => {
+              if (task.id !== taskId) {
+                return task
+              }
+
+              const progressEntries = task.progressEntries.filter((entry) => entry.id !== entryId)
+              return {
+                ...task,
+                progressEntries,
+                progressNote: progressEntries.at(-1)?.content ?? '',
                 updatedAt: new Date().toISOString(),
               }
             }),

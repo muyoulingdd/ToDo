@@ -15,17 +15,11 @@ export function HomePage() {
       <header className="hero-card home-hero">
         <p className="eyebrow">ToDo</p>
         <h1>只留下最重要的下一件事。</h1>
-        <p className="hero-copy">
-          轻点记录，完成就划掉。复杂信息留到详情页，主页面始终保持干净。
-        </p>
       </header>
 
       <section className="list-panel home-list-panel">
         <div className="section-head">
           <h2>{view === 'active' ? '待办' : '已完成'}</h2>
-          <Link className="text-link" to="/add">
-            添加
-          </Link>
         </div>
 
         {visibleTasks.length === 0 ? (
@@ -61,7 +55,7 @@ export function HomePage() {
                   <Link className="task-link" to={`/task/${task.id}`}>
                     <div className="task-main">
                       <h3>{task.title}</h3>
-                      <p>{task.progressNote.trim() || '暂无进展，点开记录。'}</p>
+                      <p>{task.progressEntries.at(-1)?.content.trim() || '暂无进展，点开记录。'}</p>
                     </div>
                   </Link>
                 </div>

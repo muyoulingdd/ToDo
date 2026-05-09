@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# ToDo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个基于 React、TypeScript、Vite 和 Capacitor Android 的极简待办应用，包含原生 Android 自动更新能力。
 
-Currently, two official plugins are available:
+## 功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 待办新增、完成、删除
+- 任务详情页与进度概览
+- 进度逐条记录与详情查看
+- Android 启动时自动检查更新
+- APK 下载进度显示与安装引导
 
-## React Compiler
+## 本地开发
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+安装依赖：
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+启动前端开发环境：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+npm run dev
 ```
+
+## Android 打包
+
+同步前端资源到 Android：
+
+```powershell
+npm run android:sync
+```
+
+使用项目内置 JDK/SDK 构建 APK：
+
+```powershell
+.\build-apk.ps1
+```
+
+构建完成后，根目录会生成：
+
+- [ToDo.apk](./ToDo.apk)
+
+## 自动更新
+
+Android 原生更新逻辑位于：
+
+- [android/app/src/main/java/com/todo/minimal/MainActivity.java](./android/app/src/main/java/com/todo/minimal/MainActivity.java)
+
+更新检查服务位于：
+
+- [worker.js](./worker.js)
+
+## Release 校验
+
+上传 GitHub release 资产后，执行：
+
+```powershell
+npm run release:verify
+```
+
+这个校验会比对：
+
+- 本地 [ToDo.apk](./ToDo.apk)
+- GitHub release 中的 `ToDo.apk`
+
+比对内容包括：
+
+- 包名
+- `versionCode`
+- `versionName`
+- SHA-256
+
+## 发版规则
+
+发版规则见：
+
+- [RELEASING.md](./RELEASING.md)
+
+当前版本号唯一来源：
+
+- [android/app/build.gradle](./android/app/build.gradle)

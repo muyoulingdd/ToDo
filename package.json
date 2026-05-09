@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
+    "release:verify": "powershell -ExecutionPolicy Bypass -File .\\verify-release-apk.ps1",
     "lint": "eslint .",
     "preview": "vite preview"
   },

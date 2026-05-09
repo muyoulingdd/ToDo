@@ -12,7 +12,6 @@ export default {
       const release = await getLatestReleaseWithApk(OWNER, REPO, APK_NAME, env);
       const latest = getReleaseVersion(release);
       const asset = getApkAsset(release, APK_NAME);
-      const downloadUrl = buildDownloadUrl(url, env, release, asset);
 
       return Response.json({
         update: compareVersion(latest, current) > 0,
@@ -21,7 +20,7 @@ export default {
         tag: release.tag_name,
         changelog: release.body,
         size: asset?.size || null,
-        download_url: downloadUrl
+        download_url: asset?.browser_download_url || `${url.origin}/download?tag=${encodeURIComponent(release.tag_name)}`
       }, {
         headers: {
           "Cache-Control": "public, max-age=60, must-revalidate"
@@ -40,8 +39,7 @@ export default {
         return new Response("APK not found", { status: 404 });
       }
 
-      const upstreamDownloadUrl = buildUpstreamDownloadUrl(env, release, asset);
-      return Response.redirect(upstreamDownloadUrl, 302);
+      return Response.redirect(asset.browser_download_url, 302);
     }
 
     return Response.json({
@@ -55,38 +53,6 @@ export default {
 
 function getApkAsset(release, apkName) {
   return release.assets.find((asset) => asset.name === apkName);
-}
-
-function buildDownloadUrl(url, env, release, asset) {
-  const directUrl = buildDirectDownloadUrl(env, release, asset);
-  if (directUrl) {
-    return directUrl;
-  }
-
-  return `${url.origin}/download?tag=${encodeURIComponent(release.tag_name)}`;
-}
-
-function buildUpstreamDownloadUrl(env, release, asset) {
-  return (
-    buildDirectDownloadUrl(env, release, asset) ||
-    asset.browser_download_url
-  );
-}
-
-function buildDirectDownloadUrl(env, release, asset) {
-  if (env.APK_DOWNLOAD_URL) {
-    return env.APK_DOWNLOAD_URL;
-  }
-
-  if (env.DOWNLOAD_BASE_URL) {
-    return joinUrl(env.DOWNLOAD_BASE_URL, `${release.tag_name}/${asset.name}`);
-  }
-
-  return null;
-}
-
-function joinUrl(baseUrl, path) {
-  return `${String(baseUrl).replace(/\/+$/, "")}/${String(path).replace(/^\/+/, "")}`;
 }
 
 async function getLatestReleaseWithApk(owner, repo, apkName, env) {

@@ -12,10 +12,17 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -45,13 +52,23 @@ public class MainActivity extends BridgeActivity {
     private static final int NETWORK_TIMEOUT_MS = 15000;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private AlertDialog updateDialog;
+    private AlertDialog downloadProgressDialog;
     private long currentDownloadId = -1L;
     private String pendingDownloadUrl;
     private File downloadedApkFile;
     private boolean pendingDownloadAfterPermission;
     private boolean pendingInstallAfterPermission;
     private boolean downloadReceiverRegistered;
+    private ProgressBar downloadProgressBar;
+    private TextView downloadProgressText;
+    private final Runnable downloadProgressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateDownloadProgress();
+        }
+    };
 
     private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
         @Override
@@ -100,6 +117,8 @@ public class MainActivity extends BridgeActivity {
         if (updateDialog != null) {
             updateDialog.dismiss();
         }
+        dismissDownloadProgressDialog();
+        mainHandler.removeCallbacks(downloadProgressRunnable);
         executorService.shutdownNow();
         super.onDestroy();
     }
@@ -291,6 +310,8 @@ public class MainActivity extends BridgeActivity {
             currentDownloadId = downloadManager.enqueue(request);
             downloadedApkFile = targetFile;
             pendingInstallAfterPermission = false;
+            showDownloadProgressDialog();
+            scheduleDownloadProgressUpdate();
             Toast.makeText(this, "开始下载更新", Toast.LENGTH_SHORT).show();
         } catch (Exception exception) {
             Log.w(TAG, "Failed to enqueue APK download", exception);
@@ -315,6 +336,8 @@ public class MainActivity extends BridgeActivity {
             @SuppressLint("Range")
             int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
             if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                dismissDownloadProgressDialog();
+                mainHandler.removeCallbacks(downloadProgressRunnable);
                 ensureInstallPermissionThenContinue(false);
                 return;
             }
@@ -322,9 +345,13 @@ public class MainActivity extends BridgeActivity {
             @SuppressLint("Range")
             int reason = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_REASON));
             Log.w(TAG, "Download failed, reason: " + reason);
+            dismissDownloadProgressDialog();
+            mainHandler.removeCallbacks(downloadProgressRunnable);
             Toast.makeText(this, "下载失败", Toast.LENGTH_LONG).show();
         } catch (Exception exception) {
             Log.w(TAG, "Failed to inspect download result", exception);
+            dismissDownloadProgressDialog();
+            mainHandler.removeCallbacks(downloadProgressRunnable);
             Toast.makeText(this, "下载失败", Toast.LENGTH_LONG).show();
         }
     }
@@ -352,6 +379,129 @@ public class MainActivity extends BridgeActivity {
             Log.w(TAG, "Failed to open APK installer", exception);
             Toast.makeText(this, "无法打开安装界面", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void showDownloadProgressDialog() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+
+        if (downloadProgressDialog == null) {
+            LinearLayout container = new LinearLayout(this);
+            int padding = dpToPx(20);
+            container.setOrientation(LinearLayout.VERTICAL);
+            container.setPadding(padding, padding, padding, padding);
+
+            downloadProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+            downloadProgressBar.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
+            downloadProgressBar.setMax(100);
+
+            downloadProgressText = new TextView(this);
+            LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            textParams.topMargin = dpToPx(12);
+            downloadProgressText.setLayoutParams(textParams);
+            downloadProgressText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            downloadProgressText.setText("准备下载...");
+
+            container.addView(downloadProgressBar);
+            container.addView(downloadProgressText);
+
+            downloadProgressDialog = new AlertDialog.Builder(this)
+                    .setTitle("正在更新")
+                    .setView(container)
+                    .setCancelable(false)
+                    .create();
+        }
+
+        if (!downloadProgressDialog.isShowing()) {
+            downloadProgressDialog.show();
+        }
+    }
+
+    private void dismissDownloadProgressDialog() {
+        if (downloadProgressDialog != null && downloadProgressDialog.isShowing()) {
+            downloadProgressDialog.dismiss();
+        }
+    }
+
+    private void scheduleDownloadProgressUpdate() {
+        mainHandler.removeCallbacks(downloadProgressRunnable);
+        mainHandler.post(downloadProgressRunnable);
+    }
+
+    private void updateDownloadProgress() {
+        DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        if (downloadManager == null || currentDownloadId == -1L) {
+            return;
+        }
+
+        DownloadManager.Query query = new DownloadManager.Query().setFilterById(currentDownloadId);
+        try (Cursor cursor = downloadManager.query(query)) {
+            if (cursor == null || !cursor.moveToFirst()) {
+                return;
+            }
+
+            @SuppressLint("Range")
+            int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
+            if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PAUSED || status == DownloadManager.STATUS_PENDING) {
+                @SuppressLint("Range")
+                long downloadedBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                @SuppressLint("Range")
+                long totalBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+
+                int progress = totalBytes > 0 ? (int) ((downloadedBytes * 100) / totalBytes) : 0;
+                if (downloadProgressBar != null) {
+                    downloadProgressBar.setIndeterminate(totalBytes <= 0);
+                    if (totalBytes > 0) {
+                        downloadProgressBar.setProgress(progress);
+                    }
+                }
+                if (downloadProgressText != null) {
+                    if (totalBytes > 0) {
+                        String downloadedText = Formatter.formatFileSize(this, downloadedBytes);
+                        String totalText = Formatter.formatFileSize(this, totalBytes);
+                        downloadProgressText.setText("已下载 " + progress + "%（" + downloadedText + " / " + totalText + "）");
+                    } else {
+                        downloadProgressText.setText("正在下载更新...");
+                    }
+                }
+
+                mainHandler.postDelayed(downloadProgressRunnable, 500);
+                return;
+            }
+
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                if (downloadProgressBar != null) {
+                    downloadProgressBar.setIndeterminate(false);
+                    downloadProgressBar.setProgress(100);
+                }
+                if (downloadProgressText != null) {
+                    downloadProgressText.setText("下载完成，准备安装...");
+                }
+                return;
+            }
+
+            mainHandler.removeCallbacks(downloadProgressRunnable);
+        } catch (Exception exception) {
+            Log.w(TAG, "Failed to update download progress", exception);
+            mainHandler.removeCallbacks(downloadProgressRunnable);
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(
+                TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        dp,
+                        getResources().getDisplayMetrics()
+                )
+        );
     }
 
     private void registerDownloadReceiver() {

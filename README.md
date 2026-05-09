@@ -81,3 +81,7 @@ npm run release:verify
 当前版本号唯一来源：
 
 - [android/app/build.gradle](./android/app/build.gradle)
+
+## 开源协议
+
+本项目使用 [MIT License](./LICENSE)。
